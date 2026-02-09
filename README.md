@@ -1,60 +1,135 @@
 # Authlete Simple Authorization Server (TypeScript)
 
-This repository contains a minimal example Authorization Server using the Authlete TypeScript SDK.
+This repository contains a minimal OAuth 2.0 Authorization Server implemented in Node.js and TypeScript using the Authlete TypeScript SDK (beta).
+
+It is intended as an educational / assessment example, demonstrating how OAuth 2.0 and OpenID Connect protocol logic can be delegated to Authlete while user authentication and orchestration are handled locally.
+
+What this project demonstrates
+
+- OAuth 2.0 Authorization Code Flow
+- Delegation of OAuth/OIDC protocol logic to Authlete APIs
+- Action-driven flow control based on Authlete responses
+- A simple in-memory user authentication flow
+- Secure configuration via environment variables
+- Optional mock mode for local evaluation without Authlete credentials
+
+This project is not production-ready. It intentionally avoids persistent storage, advanced session handling, and infrastructure hardening.
+
+Architecture overview
+
+Client Application
+|
+v
+GET /authorize  --> Authlete (authorization.processRequest)
+|                     |
+|<-- INTERACTION / LOCATION
+|
+v
+/login (in-memory user authentication)
+|
+v
+Authlete (authorization.issue)
+|
+v
+Client receives authorization code
+|
+v
+POST /token  --> Authlete (token processing)
+
+Implemented endpoints
+
+- GET /authorize  
+  Authorization endpoint delegating request validation and flow control to Authlete.
+
+- POST /login  
+  Demo login endpoint using an in-memory user store. On success, completes authorization via Authlete.
+
+- POST /token  
+  Token endpoint delegating token issuance and validation to Authlete.
+
+- GET /health  
+  Basic health check endpoint.
 
 Quick start
 
-1. Copy `.env.example` to `.env` and set `AUTHLETE_BEARER` and `AUTHLETE_SERVICE_ID` (and optional `AUTHLETE_SERVER_URL`).
-2. Install dependencies:
+1. Environment configuration
 
-```bash
+Copy the example environment file:
+
+cp .env.example .env
+
+Set the following variables in .env:
+
+- AUTHLETE_BEARER
+- AUTHLETE_SERVICE_ID
+- (optional) AUTHLETE_SERVER_URL
+
+Security note:  
+.env must never be committed to Git. Secrets are managed via environment variables only.
+
+2. Install dependencies
+
 npm install
-```
 
-3. Run in dev mode:
+3. Run in development mode
 
-```bash
 npm run dev
-```
 
-Endpoints
+The server will start on:
 
-- `GET /authorize` - authorization endpoint delegating to Authlete
-- `POST /token` - token endpoint delegating to Authlete
-- `POST /login` - simple in-memory login flow for demo
+http://localhost:3000
 
-Notes
+Mock mode (no Authlete credentials required)
 
-- This is a demo scaffold for the Authlete assessment. It uses an in-memory user store and a simple HTML form UI — not for production.
-- Follow the Authlete TypeScript SDK docs for configuration and to obtain bearer tokens: https://github.com/authlete/authlete-typescript-sdk
+For assessment and local evaluation, the server supports a mock mode.
 
-Mock mode (no Authlete token)
- 
- - For the assessment you can run the server in a mock mode without a real Authlete token. If `AUTHLETE_BEARER` is missing or set to a placeholder (e.g. `your_authlete_token_here`), the server will start in MOCK mode and return simulated responses for `/authorize` and `/token` flows.
- - Start in mock mode (no setup required):
+If AUTHLETE_BEARER is missing or set to a placeholder value (for example your_authlete_token_here), the server starts in mock mode and returns simulated responses for:
 
-```bash
+- /authorize
+- /token
+
+This allows reviewers to run and explore the OAuth flow without provisioning Authlete credentials.
+
+Start mock mode:
+
 npm run dev
-```
 
-Docker (quick run in mock mode)
+Example authorization request
 
-1. Build and run with Docker Compose (this runs the server with `AUTHLETE_BEARER=mock`):
+Open the following URL in your browser:
 
-```bash
-docker-compose up --build
-```
-
-2. Verify health:
-
-```bash
-curl http://localhost:3000/health
-```
-
-3. Visit the authorization endpoint in your browser:
-
-```
 http://localhost:3000/authorize?response_type=code&client_id=test-client&redirect_uri=http://localhost:9000/cb&scope=openid
-```
 
-If you later obtain a real `AUTHLETE_BEARER` and `AUTHLETE_SERVICE_ID`, put them into `.env` and restart the server to use real Authlete APIs.
+Docker (optional, mock mode)
+
+Build and run using Docker Compose (configured to start in mock mode):
+
+docker-compose up --build
+
+Verify health:
+
+curl http://localhost:3000/health
+
+Notes and limitations
+
+- User authentication is in-memory only (demo purpose).
+- Session handling uses in-process memory storage.
+- No database or persistent storage is used.
+- Rate limiting, advanced session stores, and production hardening are intentionally out of scope.
+- OAuth/OIDC protocol decisions are delegated entirely to Authlete APIs.
+
+For real deployments, additional security controls and infrastructure would be required.
+
+References
+
+Authlete TypeScript SDK  
+https://github.com/authlete/authlete-typescript-sdk
+
+Assessment context
+
+This project was created as part of a technical assessment to demonstrate:
+
+- Understanding of OAuth 2.0 and OpenID Connect flows
+- Correct usage of the Authlete TypeScript SDK
+- Secure handling of secrets and configuration
+- Practical engineering judgment and scope control
