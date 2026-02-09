@@ -1,0 +1,39 @@
+{
+  "name": "authlete-simple-as",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:mock": "cross-env AUTHLETE_BEARER=mock ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:mock:win": "set \"AUTHLETE_BEARER=mock\" && ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "sample-client": "node scripts/sample-client.js"
+  },
+  "dependencies": {
+    "@authlete/typescript-sdk": "*",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.3.1",
+    "csurf": "^1.11.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/express-session": "^1.17.6",
+    "@types/cookie-parser": "^1.4.3",
+    "@types/csurf": "^1.11.1",
+    "@types/node": "^20.5.1",
+    "ts-node-dev": "^2.0.0",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.2.2",
+    "jest": "^29.6.0",
+    "ts-jest": "^29.1.0",
+    "@types/jest": "^29.5.2",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^2.0.12"
+  }
+}
