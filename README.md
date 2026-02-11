@@ -1,135 +1,286 @@
 # Authlete Simple Authorization Server (TypeScript)
 
-This repository contains a minimal OAuth 2.0 Authorization Server implemented in Node.js and TypeScript using the Authlete TypeScript SDK (beta).
+This repository contains a minimal OAuth 2.0 Authorization Server implemented in Node.js and TypeScript using the Authlete TypeScript SDK.
 
-It is intended as an educational / assessment example, demonstrating how OAuth 2.0 and OpenID Connect protocol logic can be delegated to Authlete while user authentication and orchestration are handled locally.
+The project is designed as an assessment-focused implementation that demonstrates the OAuth 2.0 Authorization Code flow while keeping the system self-contained and easy to evaluate locally.
 
-What this project demonstrates
+By default, the server runs in Mock Mode, allowing the full flow to operate without requiring real Authlete credentials.
+
+---
+
+## Project Purpose
+
+This project demonstrates:
+
+- Understanding of OAuth 2.0 Authorization Code Flow
+- Delegation of protocol logic to Authlete APIs (or mock equivalent)
+- Clear separation between authentication and authorization
+- Session-based login orchestration
+- Secure environment configuration using `.env`
+- Practical engineering judgment in scoping demo functionality
+
+This implementation is intentionally minimal and is not intended for production use.
+
+---
+
+## What This Project Demonstrates
 
 - OAuth 2.0 Authorization Code Flow
-- Delegation of OAuth/OIDC protocol logic to Authlete APIs
-- Action-driven flow control based on Authlete responses
-- A simple in-memory user authentication flow
+- Action-driven flow control based on Authlete-style responses
+- In-memory user authentication
+- Session management using `express-session`
+- Internal redirect handling for local evaluation
+- Mock implementation of authorization and token endpoints
 - Secure configuration via environment variables
-- Optional mock mode for local evaluation without Authlete credentials
 
-This project is not production-ready. It intentionally avoids persistent storage, advanced session handling, and infrastructure hardening.
+---
 
-Architecture overview
+## Architecture Overview
 
-Client Application
-|
-v
-GET /authorize  --> Authlete (authorization.processRequest)
-|                     |
-|<-- INTERACTION / LOCATION
-|
-v
-/login (in-memory user authentication)
-|
-v
-Authlete (authorization.issue)
-|
-v
-Client receives authorization code
-|
-v
-POST /token  --> Authlete (token processing)
+The flow implemented in this project:
 
-Implemented endpoints
+Browser  
+↓  
+GET /authorize  
+↓  
+Login Page (if interaction required)  
+↓  
+User Authentication (in-memory store)  
+↓  
+Authorization Decision (Allow / Deny)  
+↓  
+Authorization Code Issued  
+↓  
+Success Page (Displays Code)
 
-- GET /authorize  
-  Authorization endpoint delegating request validation and flow control to Authlete.
+This keeps the entire OAuth flow self-contained within the same application for easier assessment and demonstration.
 
-- POST /login  
-  Demo login endpoint using an in-memory user store. On success, completes authorization via Authlete.
+---
 
-- POST /token  
-  Token endpoint delegating token issuance and validation to Authlete.
+## Implemented Endpoints
 
-- GET /health  
-  Basic health check endpoint.
+### GET /authorize
 
-Quick start
+Authorization endpoint that begins the OAuth Authorization Code flow.
 
-1. Environment configuration
+In Mock Mode:
+- Always triggers interaction
+- Generates a mock authorization ticket
+- Displays login page
 
-Copy the example environment file:
+---
 
-cp .env.example .env
+### POST /login
 
-Set the following variables in .env:
+Handles user authentication using an in-memory user store.
 
-- AUTHLETE_BEARER
-- AUTHLETE_SERVICE_ID
-- (optional) AUTHLETE_SERVER_URL
+If credentials are valid:
+- Session is established
+- User proceeds to authorization decision page
 
-Security note:  
-.env must never be committed to Git. Secrets are managed via environment variables only.
+---
 
-2. Install dependencies
+### POST /auth/decision
 
+Handles user decision:
+
+- **Allow** → Issues authorization code
+- **Deny** → Returns access denied
+
+On success, redirects internally to `/success`.
+
+---
+
+### GET /success
+
+Displays:
+
+- Logged-in user
+- Generated authorization code
+- Confirmation message
+
+This replaces the need for an external client application during testing.
+
+---
+
+### POST /token
+
+Mock token endpoint that returns:
+
+```json
+{
+  "access_token": "mock-access-token",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+```
+
+---
+
+### GET /health
+
+Simple health check endpoint.
+
+---
+
+## Demo Users
+
+This project includes an in-memory user store for demonstration purposes.
+
+| Username     | Password  |
+|-------------|-----------|
+| omer        | tariq     |
+| omertariq   | Test123   |
+
+Users are reset when the server restarts.
+
+---
+
+## Quick Start
+
+### 1. Install Dependencies
+
+```bash
 npm install
+```
 
-3. Run in development mode
+---
 
+### 2. Configure Environment Variables
+
+Copy example file:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+
+```
+AUTHLETE_BEARER
+AUTHLETE_SERVICE_ID
+AUTHLETE_SERVER_URL (optional)
+SESSION_SECRET
+PORT
+```
+
+If `AUTHLETE_BEARER` is missing or contains placeholder text, the server automatically runs in Mock Mode.
+
+No real Authlete credentials are required for evaluation.
+
+---
+
+### 3. Run Development Server
+
+```bash
 npm run dev
+```
 
-The server will start on:
+Server runs on:
 
+```
 http://localhost:3000
+```
 
-Mock mode (no Authlete credentials required)
+---
 
-For assessment and local evaluation, the server supports a mock mode.
+## Testing the Authorization Flow
 
-If AUTHLETE_BEARER is missing or set to a placeholder value (for example your_authlete_token_here), the server starts in mock mode and returns simulated responses for:
+Open:
 
-- /authorize
-- /token
+```
+http://localhost:3000/authorize
+```
 
-This allows reviewers to run and explore the OAuth flow without provisioning Authlete credentials.
+Steps:
 
-Start mock mode:
+1. Login using demo credentials
+2. Click **Allow**
+3. You will be redirected to `/success`
+4. Authorization code will be displayed
 
-npm run dev
+This demonstrates a complete OAuth Authorization Code flow.
 
-Example authorization request
+---
 
-Open the following URL in your browser:
+## Mock Mode
 
-http://localhost:3000/authorize?response_type=code&client_id=test-client&redirect_uri=http://localhost:9000/cb&scope=openid
+Mock Mode is automatically activated when:
 
-Docker (optional, mock mode)
+- `AUTHLETE_BEARER` is empty
+- `AUTHLETE_BEARER` contains placeholder values
+- `AUTHLETE_BEARER=mock`
 
-Build and run using Docker Compose (configured to start in mock mode):
+Mock Mode simulates:
 
-docker-compose up --build
+- Authorization request validation
+- Authorization code issuance
+- Token response generation
 
-Verify health:
+This enables full local execution without provisioning Authlete services.
 
-curl http://localhost:3000/health
+---
 
-Notes and limitations
+## Security Notes
 
-- User authentication is in-memory only (demo purpose).
-- Session handling uses in-process memory storage.
-- No database or persistent storage is used.
-- Rate limiting, advanced session stores, and production hardening are intentionally out of scope.
-- OAuth/OIDC protocol decisions are delegated entirely to Authlete APIs.
+This project intentionally simplifies security mechanisms for demonstration purposes.
 
-For real deployments, additional security controls and infrastructure would be required.
+Limitations include:
 
-References
+- In-memory session store
+- Plain-text demo passwords
+- No CSRF protection
+- No persistent storage
+- No rate limiting
+- No production hardening
 
-Authlete TypeScript SDK  
-https://github.com/authlete/authlete-typescript-sdk
+For real-world deployment, additional security controls would be required.
 
-Assessment context
+---
 
-This project was created as part of a technical assessment to demonstrate:
+## Design Decisions
 
-- Understanding of OAuth 2.0 and OpenID Connect flows
-- Correct usage of the Authlete TypeScript SDK
-- Secure handling of secrets and configuration
-- Practical engineering judgment and scope control
+The following engineering decisions were made intentionally:
+
+- Mock mode enabled for easy evaluation
+- Internal success route replaces external client redirect
+- In-memory users to avoid database complexity
+- Minimal UI to focus on protocol flow
+- Clear separation of flow orchestration and authentication logic
+
+The goal is clarity of OAuth flow implementation rather than production completeness.
+
+---
+
+## Assessment Context
+
+This project was developed to demonstrate:
+
+- Practical understanding of OAuth 2.0 flows
+- Correct orchestration of Authorization Code process
+- Usage of Authlete SDK (or equivalent delegation logic)
+- Secure handling of environment-based configuration
+- Ability to simplify distributed OAuth flow into a self-contained demo
+- Clean and structured backend implementation in TypeScript
+
+---
+
+## Potential Future Improvements
+
+- Replace in-memory users with persistent database
+- Add password hashing (bcrypt)
+- Restore proper CSRF protection
+- Add refresh token support
+- Add OpenID Connect ID token support
+- Implement client registration endpoint
+- Add logout and session invalidation
+- Use Redis for production session storage
+- Improve UI styling
+
+---
+
+## Summary
+
+This repository provides a clean, minimal, and self-contained demonstration of an OAuth 2.0 Authorization Server implemented in TypeScript.
+
+It demonstrates correct flow orchestration, secure configuration practices, and practical engineering trade-offs suitable for assessment review.
