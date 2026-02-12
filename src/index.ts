@@ -1,24 +1,40 @@
-import { app, PORT, useMock, authleteClient } from "./app";
-import { logger } from "./logger";
+import { app, PORT } from "./app";
+import { Authlete } from "@authlete/typescript-sdk";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+async function validateAuthleteCredentials() {
+  if (!process.env.AUTHLETE_BEARER) {
+    throw new Error("AUTHLETE_BEARER is not set");
+  }
+
+  if (!process.env.AUTHLETE_SERVICE_ID) {
+    throw new Error("AUTHLETE_SERVICE_ID is not set");
+  }
+
+  const authlete = new Authlete({
+    bearer: process.env.AUTHLETE_BEARER,
+    serverURL: process.env.AUTHLETE_SERVER_URL,
+  });
+
+  await authlete.service.get({
+    serviceId: process.env.AUTHLETE_SERVICE_ID,
+  });
+}
 
 async function startup() {
   try {
-    if (!useMock) {
-      if (!process.env.AUTHLETE_BEARER || !process.env.AUTHLETE_SERVICE_ID) {
-        logger.error("AUTHLETE_BEARER or AUTHLETE_SERVICE_ID missing. Please set them in .env");
-        process.exit(1);
-      }
-      await authleteClient.service.get({ serviceId: process.env.AUTHLETE_SERVICE_ID as string });
-      logger.info(`Authlete credentials valid. Starting server on http://localhost:${PORT}`);
-    } else {
-      logger.info(`Starting in MOCK mode on http://localhost:${PORT}`);
-    }
+    await validateAuthleteCredentials();
+
+    console.log("Authlete credentials validated successfully.");
 
     app.listen(PORT, () => {
-      logger.info(`Authlete sample server running on http://localhost:${PORT}`);
+      console.log(`Authorization server running at http://localhost:${PORT}`);
     });
-  } catch (e: any) {
-    logger.error("Authlete credential validation failed:", e?.message ?? e);
+  } catch (error: any) {
+    console.error("Failed to validate Authlete credentials.");
+    console.error(error?.message || error);
     process.exit(1);
   }
 }
